@@ -35,7 +35,7 @@ class Task(models.Model):
         null=True,
     )
     executor = models.ManyToManyField(
-        settings.AUTH_USER_MODEL, verbose_name="Исполнитель(ли)", help_text="Выберите исполнителя(лей)"
+        settings.AUTH_USER_MODEL, verbose_name="Исполнители", help_text="Выберите исполнителей"
     )
     deadline = models.DateField(verbose_name="Срок выполнения", help_text="Введите крайний срок выполнения задачи")
     status = models.CharField(choices=STATUS_CHOICES, default=CREATED, verbose_name="Статус задачи")

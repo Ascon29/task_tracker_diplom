@@ -68,18 +68,25 @@ class TaskDestroyAPIView(DestroyAPIView):
 
 
 class StartTaskAPIView(APIView):
-    """Контроллер запуска задачи в работу. Происходит отправка уведомлений исполнителям на email.
-    Устанавливает статус задачи: 'В работе'"""
+    """Контроллер запуска задачи в работу или возврата на доработку, в зависимости от статуса задачи.
+    Происходит отправка уведомлений исполнителям на email. Устанавливает статус задачи: 'В работе'."""
 
     permission_classes = [IsAdmin]
 
     def post(self, *args, **kwargs):
-
         task = get_object_or_404(Task, pk=self.kwargs["pk"])
         subject = f"Треккер задач {settings.COMPANY_NAME}"
-        message = f"Вам поставлена задача: {task.name}, срок выполнения: {task.deadline}.\n Для подробной информации о задаче перейдите по ссылке: {settings.APP_ROOT}{task.id}/"
+
+        # Сообщение, если статус задачи "Создана"
+        if Task.CREATED:
+            message = f"Вам поставлена задача: {task.name}, срок выполнения: {task.deadline}.\n Для подробной информации о задаче перейдите по ссылке: {settings.APP_ROOT}{task.id}/"
+        # Сообщение, если статус задачи "На проверке"
+        elif Task.VERIFICATION:
+            message = f"Задача '{task.name}' возвращена на доработку!\n Для подробной информации о задаче перейдите по ссылке: {settings.APP_ROOT}{task.id}/"
+
         from_email = settings.EMAIL_HOST_USER
         recipient_list = [executor.email for executor in task.executor.all()]
+
         for recipient in recipient_list:
             try:
                 send_mail(
@@ -96,34 +103,33 @@ class StartTaskAPIView(APIView):
 
 
 class CompleteTaskAPIView(APIView):
-    """Контроллер завершения задачи. Устанавливает статус задачи: 'Завершена'"""
+    """Контроллер завершения задачи. Устанавливает статус задачи: 'Завершена'."""
 
-    permission_classes = [IsAdmin | IsExecutor]
+    permission_classes = [IsAdmin]
 
     def post(self, *args, **kwargs):
         task = get_object_or_404(Task, pk=self.kwargs["pk"])
-        # executors = [executor for executor in task.executor.all()]
-        if self.request.user.is_superuser:
-            task.status = Task.COMPLETED
-            task.save()
-            return HttpResponse(f"Задача '{task.name}' успешно выполнена")
-        # elif self.request.user in executors:
-        else:
-            subject = f"Треккер задач {settings.COMPANY_NAME}"
-            message = f"Задача '{task.name}' выполнена, можно проверять"
-            from_email = self.request.user.email
-            recipient_list = [settings.EMAIL_HOST_USER]
-            try:
-                send_mail(
-                    subject,
-                    message,
-                    from_email,
-                    recipient_list,
-                )
-                task.status = Task.VERIFICATION
-                task.save()
-                return HttpResponse(f"Уведомление о выполнении задачи '{task.name}' отправлено.")
-            except Exception as e:
-                return HttpResponse(f"При отправке сообщения произошла ошибка: {e}")
-        # else:
-        #     return HttpResponse('у вас нет на это прав')
+        task.status = Task.COMPLETED
+        task.save()
+        return HttpResponse(f"Задача '{task.name}' успешно выполнена")
+
+
+class EndTaskAPIView(APIView):
+    """Контроллер для сдачи задачи на проверку. Устанавливает статус задачи: 'На проверке'."""
+
+    permission_classes = [IsExecutor]
+
+    def post(self, *args, **kwargs):
+        task = get_object_or_404(Task, pk=self.kwargs["pk"])
+        task.status = Task.VERIFICATION
+        task.save()
+        return HttpResponse(f"Задача '{task.name}' сдана на проверку")
+
+
+class ImportantTask(APIView):
+
+    def get(self, *args, **kwargs):
+
+        important_tasks = Task.objects.filter(status="Создана", parent_task__status="В работе")
+        print(important_tasks)
+        return HttpResponse("")

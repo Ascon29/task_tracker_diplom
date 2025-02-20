@@ -27,6 +27,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "users",
     "task_tracker",
+    "django_filters",
+    "drf_yasg",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
@@ -113,7 +115,7 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",  # AllowAny  IsAuthenticated
+        "rest_framework.permissions.AllowAny",  # AllowAny  IsAuthenticated
     ],
 }
 SIMPLE_JWT = {
@@ -140,3 +142,26 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # celery -A config worker -l info -P eventlet
 # celery -A config beat -l info
+
+LOGS = os.path.join(BASE_DIR, "logs")
+if not os.path.exists(LOGS):
+    os.mkdir(LOGS)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOGS, "debug.log"),
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
+}

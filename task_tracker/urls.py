@@ -9,6 +9,8 @@ from task_tracker.views import (
     TaskUpdateAPIView,
     StartTaskAPIView,
     CompleteTaskAPIView,
+    EndTaskAPIView,
+    ImportantTask,
 )
 
 app_name = TaskTrackerConfig.name
@@ -19,6 +21,8 @@ urlpatterns = [
     path("tasks/create/", TaskCreateAPIView.as_view(), name="task-create"),
     path("tasks/update/<int:pk>/", TaskUpdateAPIView.as_view(), name="task-update"),
     path("tasks/delete/<int:pk>/", TaskDestroyAPIView.as_view(), name="task-delete"),
-    path("start_task/<int:pk>/", StartTaskAPIView.as_view(), name="task-start"),
+    path("start_task/<int:pk>/", StartTaskAPIView.as_view(), name="start_task"),
     path("complete_task/<int:pk>/", CompleteTaskAPIView.as_view(), name="task-complete"),
+    path("end_task/<int:pk>/", EndTaskAPIView.as_view(), name="task-end"),
+    path("important_task/", ImportantTask.as_view(), name="important-task"),
 ]

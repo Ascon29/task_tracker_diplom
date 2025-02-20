@@ -1,15 +1,15 @@
 from rest_framework.generics import CreateAPIView, DestroyAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 
 from users.models import User
 from users.permissions import IsAdmin
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, UserCreateSerializer
 
 
 class UserCreateAPIView(CreateAPIView):
     """Контроллер создания пользователя."""
 
-    serializer_class = UserSerializer
+    serializer_class = UserCreateSerializer
     queryset = User.objects.all()
     permission_classes = [AllowAny]
 
@@ -31,14 +31,20 @@ class UserUpdateAPIView(UpdateAPIView):
 
     serializer_class = UserSerializer
     queryset = User.objects.all()
+    permission_classes = [IsAdmin]
 
 
 class UserListAPIView(ListAPIView):
-    """Контроллер отображения списка пользователей."""
+    """Контроллер отображения списка пользователей, отсортированных по количеству активных задач."""
 
     serializer_class = UserSerializer
     queryset = User.objects.all()
     permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = sorted(queryset, key=lambda x: x.task_set.filter(status="В работе").count(), reverse=True)
+        return queryset
 
 
 class UserDestroyAPIView(DestroyAPIView):
