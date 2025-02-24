@@ -1,9 +1,11 @@
-from rest_framework.generics import CreateAPIView, DestroyAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView
+from rest_framework.generics import (CreateAPIView, DestroyAPIView,
+                                     ListAPIView, RetrieveAPIView,
+                                     UpdateAPIView)
 from rest_framework.permissions import AllowAny
 
 from users.models import User
 from users.permissions import IsAdmin
-from users.serializers import UserSerializer, UserCreateSerializer
+from users.serializers import UserCreateSerializer, UserSerializer
 
 
 class UserCreateAPIView(CreateAPIView):

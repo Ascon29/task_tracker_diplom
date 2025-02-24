@@ -11,6 +11,10 @@ class TaskValidator:
 
     def __call__(self, value):
 
+        # if not value.get('is_main_task'):
+        #     if not value.get('parent_task'):
+        #         raise ValidationError('У подзадачи необходимо указать родительскую задачу')
+
         if value.get("is_main_task"):
             if value.get("parent_task"):
                 raise ValidationError("У основной задачи не может быть родительской задачи")

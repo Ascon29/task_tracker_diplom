@@ -1,13 +1,10 @@
+from collections import Counter
+
 from django.core.mail import send_mail
 from django.http import HttpResponse
-from rest_framework.generics import (
-    CreateAPIView,
-    DestroyAPIView,
-    ListAPIView,
-    RetrieveAPIView,
-    UpdateAPIView,
-    get_object_or_404,
-)
+from rest_framework.generics import (CreateAPIView, DestroyAPIView,
+                                     ListAPIView, RetrieveAPIView,
+                                     UpdateAPIView, get_object_or_404)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -15,7 +12,9 @@ from config import settings
 from task_tracker.models import Task
 from task_tracker.paginations import TaskPagination
 from task_tracker.serializers import TaskSerializer
+from users.models import User
 from users.permissions import IsAdmin, IsExecutor
+from users.serializers import UserSerializer
 
 
 class TaskCreateAPIView(CreateAPIView):
@@ -76,30 +75,39 @@ class StartTaskAPIView(APIView):
     def post(self, *args, **kwargs):
         task = get_object_or_404(Task, pk=self.kwargs["pk"])
         subject = f"Треккер задач {settings.COMPANY_NAME}"
+        if task.executor.exists():
 
-        # Сообщение, если статус задачи "Создана"
-        if Task.CREATED:
-            message = f"Вам поставлена задача: {task.name}, срок выполнения: {task.deadline}.\n Для подробной информации о задаче перейдите по ссылке: {settings.APP_ROOT}{task.id}/"
-        # Сообщение, если статус задачи "На проверке"
-        elif Task.VERIFICATION:
-            message = f"Задача '{task.name}' возвращена на доработку!\n Для подробной информации о задаче перейдите по ссылке: {settings.APP_ROOT}{task.id}/"
+            # Сообщение, если статус задачи "Создана"
+            if task.status == "Создана":
+                message = f"Вам поставлена задача: {task.name}, срок выполнения: {task.deadline}.\n Для подробной информации о задаче перейдите по ссылке: {settings.APP_ROOT}{task.id}/"
+            # Сообщение, если статус задачи "На проверке"
+            elif task.status == "На проверке":
+                message = f"Задача '{task.name}' возвращена на доработку!\nДля подробной информации о задаче перейдите по ссылке: {settings.APP_ROOT}{task.id}/"
+            # Если статус задачи "В работе", сообщение не отправляется, а возвращается HTTP ответ
+            elif task.status == "В работе":
+                return HttpResponse(f"Задача '{task.name}' уже поставлена")
+            # Если статус задачи "Завершена", сообщение не отправляется, а возвращается HTTP ответ
+            elif task.status == "Завершена":
+                return HttpResponse(f"Задача '{task.name}' уже выполнена")
 
-        from_email = settings.EMAIL_HOST_USER
-        recipient_list = [executor.email for executor in task.executor.all()]
+            from_email = settings.EMAIL_HOST_USER
+            recipient_list = [executor.email for executor in task.executor.all()]
 
-        for recipient in recipient_list:
-            try:
-                send_mail(
-                    subject,
-                    message,
-                    from_email,
-                    [recipient],
-                )
-                task.status = Task.AT_WORK
-                task.save()
-                return HttpResponse(f"Уведомление о задаче '{task.name}' отправлено.")
-            except Exception as e:
-                return HttpResponse(f"При отправке сообщения произошла ошибка: {e}")
+            for recipient in recipient_list:
+                try:
+                    send_mail(
+                        subject,
+                        message,
+                        from_email,
+                        [recipient],
+                    )
+                    task.status = Task.AT_WORK
+                    task.save()
+                    return HttpResponse(f"Уведомление о задаче '{task.name}' отправлено.")
+                except Exception as e:
+                    return HttpResponse(f"При отправке сообщения произошла ошибка: {e}")
+        else:
+            return HttpResponse("Для задачи не выбран ни один исполнитель")
 
 
 class CompleteTaskAPIView(APIView):
@@ -126,10 +134,22 @@ class EndTaskAPIView(APIView):
         return HttpResponse(f"Задача '{task.name}' сдана на проверку")
 
 
-class ImportantTask(APIView):
+class ImportantTask(ListAPIView):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    permission_classes = [IsAdmin]
 
-    def get(self, *args, **kwargs):
+    # def get_queryset(self):
+    #     queryset = super().get_queryset()
+    #     # queryset = queryset.task_set.all()
+    #     return queryset
+
+    def get(self, request, *args, **kwargs):
 
         important_tasks = Task.objects.filter(status="Создана", parent_task__status="В работе")
         print(important_tasks)
+        all_tasks_at_work = Task.objects.filter(status="В работе")
+        all_executors_at_work = Task.objects.all().values_list("executor", flat=True)
+
+        print(Counter(all_executors_at_work))
         return HttpResponse("")
