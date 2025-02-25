@@ -35,7 +35,7 @@ class TaskTestCase(APITestCase):
 
     def test_task_update(self):
         url = reverse("task_tracker:task-update", args=(self.task.pk,))
-        data = {"name": "test_update", "deadline": "2026-10-10"}
+        data = {"name": "test_update", "deadline": "2026-10-10", "is_main_task": True}
         response = self.client.patch(url, data)
         new_data = response.json()
 
@@ -53,10 +53,9 @@ class TaskTestCase(APITestCase):
             "is_main_task": self.task.is_main_task,
             "deadline": self.task.deadline,
             "status": self.task.status,
-            "executor": [6],
+            "executor": [self.task.executor.all()[0].id],
             "parent_task": self.task.parent_task,
         }
-        # print(data)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(data, result)
@@ -80,4 +79,9 @@ class TaskTestCase(APITestCase):
     def test_end_task(self):
         url = reverse("task_tracker:task-end", args=(self.task.pk,))
         response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_important_task(self):
+        url = reverse("task_tracker:important-task")
+        response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

@@ -1,5 +1,3 @@
-from collections import Counter
-
 from django.core.mail import send_mail
 from django.http import HttpResponse
 from rest_framework.generics import (CreateAPIView, DestroyAPIView,
@@ -12,9 +10,8 @@ from config import settings
 from task_tracker.models import Task
 from task_tracker.paginations import TaskPagination
 from task_tracker.serializers import TaskSerializer
-from users.models import User
+from task_tracker.services import get_important_tasks
 from users.permissions import IsAdmin, IsExecutor
-from users.serializers import UserSerializer
 
 
 class TaskCreateAPIView(CreateAPIView):
@@ -51,7 +48,8 @@ class TaskListAPIView(ListAPIView):
 
     def get_queryset(self):
         """Сортировка по сроку (первые отображаются задачи, у которых заканчивается срок в ближайшее время).
-        Управляющий (суперпользователь) видит все задачи. Сотрудник (исполнитель) видит только назначенные ему задачи."""
+        Управляющий (суперпользователь) видит все задачи. Сотрудник (исполнитель) видит только назначенные ему задачи.
+        """
         if self.request.user.is_superuser:
             return Task.objects.order_by("deadline")
         else:
@@ -135,21 +133,12 @@ class EndTaskAPIView(APIView):
 
 
 class ImportantTask(ListAPIView):
-    serializer_class = UserSerializer
-    queryset = User.objects.all()
+    """Контроллер для отображения важных задач (задачи, не взятые в работу, у которых родительская задача в работе).
+    Возвращает HTTP-ответ в формате:
+    {'important_task': 'название задачи', 'deadline': 'срок', 'possible_executors': ['ФИО сотрудника',]}"""
+
     permission_classes = [IsAdmin]
 
-    # def get_queryset(self):
-    #     queryset = super().get_queryset()
-    #     # queryset = queryset.task_set.all()
-    #     return queryset
-
     def get(self, request, *args, **kwargs):
-
-        important_tasks = Task.objects.filter(status="Создана", parent_task__status="В работе")
-        print(important_tasks)
-        all_tasks_at_work = Task.objects.filter(status="В работе")
-        all_executors_at_work = Task.objects.all().values_list("executor", flat=True)
-
-        print(Counter(all_executors_at_work))
-        return HttpResponse("")
+        result = get_important_tasks()
+        return HttpResponse(result)
