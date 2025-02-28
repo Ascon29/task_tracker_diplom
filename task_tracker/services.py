@@ -7,7 +7,7 @@ def get_important_tasks():
     # берем все существующие задачи.
     all_tasks = Task.objects.all()
     # берем всех существующих исполнителей, чтобы посчитать количество их задач.
-    all_executors = [executor.full_name for task in all_tasks for executor in task.executor.all()]
+    all_executors = [executor.full_name for task in all_tasks for executor in task.executor.filter(is_superuser=False)]
     executors_task_count = list(dict(Counter(all_executors).most_common()).items())
 
     # Создаем список наименее загруженных сотрудников. Берём последнего сотрудника из списка выше,

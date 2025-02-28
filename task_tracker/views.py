@@ -1,3 +1,5 @@
+import json
+
 from django.core.mail import send_mail
 from django.http import HttpResponse
 from rest_framework.generics import (CreateAPIView, DestroyAPIView,
@@ -141,4 +143,4 @@ class ImportantTask(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         result = get_important_tasks()
-        return HttpResponse(result)
+        return HttpResponse(json.dumps(result, indent=4, ensure_ascii=False))
