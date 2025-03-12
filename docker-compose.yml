@@ -1,0 +1,27 @@
+services:
+
+  db:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./.env
+    expose:
+      - '5432'
+
+  web:
+    build: .
+    command: bash -c 'python manage.py migrate && python manage.py runserver 0.0.0.0:8000'
+    volumes:
+      - .:/code
+      - static_volume:/app/staticfiles
+    ports:
+      - '8000:8000'
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+
+volumes:
+  postgres_data:
+  static_volume:
